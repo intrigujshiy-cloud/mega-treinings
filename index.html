@@ -2,77 +2,108 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>EngSmart 4.1 - Fast Load</title>
+    <title>EngSmart 4.2 - Pro Edition</title>
     <style>
-        :root { --p: #4a90e2; --s: #2ecc71; --e: #e74c3c; }
-        body, html { margin:0; padding:0; height:100vh; font-family: 'Comic Sans MS', sans-serif; background: #f0f4f8; overflow: hidden; }
+        :root { --p: #4a90e2; --s: #2ecc71; --e: #e74c3c; --bg: #f8f9fa; }
+        body, html { margin:0; padding:0; height:100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); overflow: hidden; }
         
-        /* Скрываем всё до загрузки, чтобы не было мерцания */
-        #setup, #game { display: none; }
+        /* КРАСИВЫЙ КОНСТРУКТОР */
+        #setup { padding: 30px; max-width: 1000px; margin: 0 auto; flex-direction: column; gap: 20px; height: 100vh; overflow-y: auto; box-sizing: border-box; display: flex; }
+        .header-ui { text-align: center; border-bottom: 3px solid var(--p); padding-bottom: 10px; margin-bottom: 10px; }
+        .header-ui h2 { margin: 0; color: var(--p); text-transform: uppercase; letter-spacing: 2px; }
+        
+        .card-ui { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        .cols { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; margin-top: 10px; }
+        
+        label { font-size: 12px; font-weight: bold; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        textarea { width: 100%; height: 180px; padding: 12px; border: 2px solid #eaeeef; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 13px; transition: 0.3s; box-sizing: border-box; resize: none; }
+        textarea:focus { border-color: var(--p); outline: none; background: #f0f7ff; }
+        
+        .btn { background: var(--s); color: white; border: none; padding: 15px 25px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; text-transform: uppercase; transition: 0.3s; box-shadow: 0 4px 15px rgba(46,204,113,0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(46,204,113,0.4); }
+        .btn-preview { background: var(--p); box-shadow: 0 4px 15px rgba(74,144,226,0.3); }
+        
+        #out { width: 100%; height: 70px; background: #2c3e50; color: #2ecc71; border-radius: 10px; padding: 12px; font-size: 11px; border: none; margin-top: 10px; box-sizing: border-box; }
 
-        #setup { padding: 20px; max-width: 900px; margin: 0 auto; flex-direction: column; gap: 10px; height: 100vh; overflow-y: auto; box-sizing: border-box; display: flex; }
-        .cols { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 10px; }
-        textarea { height: 150px; padding: 10px; border: 2px solid #ddd; border-radius: 10px; font-family: monospace; font-size: 12px; }
-        .btn { background: var(--s); color: white; border: none; padding: 12px; border-radius: 50px; cursor: pointer; font-weight: bold; }
-        #out { width: 100%; height: 60px; background: #222; color: #2ecc71; border-radius: 8px; padding: 10px; font-size: 10px; border: none; }
-        
-        #game { height: 100vh; background-size: cover; background-position: center; position: relative; }
+        /* ИГРОВОЙ ЭКРАН (БЕЗ ИЗМЕНЕНИЙ ЛОГИКИ) */
+        #game { height: 100vh; background-size: cover; background-position: center; position: relative; display: none; }
         .ov { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(5px); display: flex; flex-direction: column; }
         .main { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 15px; }
-        
-        .scramble-box { background:white; padding:20px; border-radius:20px; border:4px solid var(--p); text-align:center; width:350px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .scramble-box { background:white; padding:20px; border-radius:20px; border:4px solid var(--p); text-align:center; width:350px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); font-family: 'Comic Sans MS', sans-serif; }
         .letters-area { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 15px; }
-        .letter-btn { min-width: 35px; height: 40px; background: white; border: 2px solid var(--p); border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; padding: 0 10px; }
+        .letter-btn { min-width: 35px; height: 40px; background: white; border: 2px solid var(--p); border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; padding: 0 10px; font-family: 'Comic Sans MS', sans-serif; }
         .letter-btn.wrong { animation: shake 0.3s; border-color: var(--e); color: var(--e); }
-        .word-progress { font-size: 24px; font-weight: bold; letter-spacing: 3px; margin: 15px 0; color: var(--p); border-bottom: 2px dashed #ddd; min-height: 35px; }
-
-        .card { width: 140px; height: 190px; perspective: 1000px; cursor: pointer; }
+        .word-progress { font-size: 24px; font-weight: bold; letter-spacing: 3px; margin: 15px 0; color: var(--p); border-bottom: 2px dashed #ddd; min-height: 35px; font-family: 'Comic Sans MS', sans-serif; }
+        .card { width: 140px; height: 190px; perspective: 1000px; cursor: pointer; font-family: 'Comic Sans MS', sans-serif; }
         .card-in { position: relative; width: 100%; height: 100%; transition: 0.6s; transform-style: preserve-3d; }
         .card.f .card-in { transform: rotateY(180deg); }
         .card-f { position: absolute; inset: 0; backface-visibility: hidden; background: white; border: 4px solid var(--p); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
         .card-b { transform: rotateY(180deg); background: #f0f7ff; color: var(--p); font-size: 18px; font-weight: bold; }
         .card img { max-width: 90%; max-height: 90px; object-fit: contain; }
-        
-        .m-item { padding: 12px; background: white; border: 2px solid var(--p); border-radius: 10px; cursor: pointer; width: 45%; font-weight: bold; text-align: center; margin: 5px; }
+        .m-item { padding: 12px; background: white; border: 2px solid var(--p); border-radius: 10px; cursor: pointer; width: 45%; font-weight: bold; text-align: center; margin: 5px; font-family: 'Comic Sans MS', sans-serif; }
         .m-item.sel { background: var(--p); color: white; }
         .m-item.hid { visibility: hidden; }
-        
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
-        #victory { position: fixed; inset:0; background: rgba(0,0,0,0.9); display:none; flex-direction:column; align-items:center; justify-content:center; color:white; z-index:999; }
+        #victory { position: fixed; inset:0; background: rgba(0,0,0,0.9); display:none; flex-direction:column; align-items:center; justify-content:center; color:white; z-index:999; font-family: 'Comic Sans MS', sans-serif; }
     </style>
 </head>
 <body>
 
     <div id="setup">
-        <h2 style="text-align:center; color:var(--p);">EngSmart Constructor</h2>
-        <input type="text" id="bgI" value="https://images.unsplash.com/photo-1518709268805-4e9042af9f23" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
-        <div class="cols">
-            <textarea id="enC" placeholder="Apple&#10;Dog"></textarea>
-            <textarea id="ruC" placeholder="Яблоко&#10;Собака"></textarea>
-            <textarea id="imC" placeholder="Картинки..."></textarea>
+        <div class="header-ui">
+            <h2>EngSmart 4.2 Pro Constructor</h2>
         </div>
-        <button class="btn" onclick="gen()">1. СГЕНЕРИРОВАТЬ КОД ДЛЯ GENIALLY 🚀</button>
-        <textarea id="out" readonly></textarea>
-        <button class="btn" style="background:var(--p);" onclick="preview()">2. ПРЕДПРОСМОТР ТУТ 👁️</button>
+
+        <div class="card-ui">
+            <label>1. Глобальный фон (URL картинки)</label>
+            <input type="text" id="bgI" value="https://images.unsplash.com/photo-1518709268805-4e9042af9f23" style="width:100%; padding:12px; border-radius:10px; border:2px solid #eaeeef; box-sizing:border-box;">
+        </div>
+
+        <div class="card-ui">
+            <div class="cols">
+                <div>
+                    <label>2. English Words</label>
+                    <textarea id="enC" placeholder="Apple&#10;Dog&#10;Sun"></textarea>
+                </div>
+                <div>
+                    <label>3. Russian Translation</label>
+                    <textarea id="ruC" placeholder="Яблоко&#10;Собака&#10;Солнце"></textarea>
+                </div>
+                <div>
+                    <label>4. Images/GIFs (Direct URLs)</label>
+                    <textarea id="imC" placeholder="https://.../apple.gif&#10;https://.../dog.png&#10;https://.../sun.jpg"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:15px; justify-content:center;">
+            <button class="btn" onclick="gen()">🚀 Get Iframe Code</button>
+            <button class="btn btn-preview" onclick="preview()">👁️ Test Game</button>
+        </div>
+
+        <div class="card-ui" style="background: #fdfdfd;">
+            <label>Your Genially Code (Copy this):</label>
+            <textarea id="out" readonly placeholder="Your code will appear here..."></textarea>
+        </div>
     </div>
 
     <div id="game">
         <div class="ov">
-            <div style="height:50px; display:flex; justify-content:center; align-items:center; gap:10px; background:white;">
+            <div style="height:50px; display:flex; justify-content:center; align-items:center; gap:12px; background:white; border-bottom:1px solid #eee;">
                 <div class="dot" id="d1" style="width:10px;height:10px;border-radius:50%;background:#ddd;"></div>
                 <div class="dot" id="d2" style="width:10px;height:10px;border-radius:50%;background:#ddd;"></div>
                 <div class="dot" id="d3" style="width:10px;height:10px;border-radius:50%;background:#ddd;"></div>
                 <div class="dot" id="d4" style="width:10px;height:10px;border-radius:50%;background:#ddd;"></div>
             </div>
             <div id="cont" class="main"></div>
-            <div style="height:60px; display:flex; justify-content:center; align-items:center;">
-                <button id="nx" class="btn" style="padding:10px 40px; display:none;" onclick="nxLvl()">ДАЛЬШЕ →</button>
+            <div style="height:70px; display:flex; justify-content:center; align-items:center;">
+                <button id="nx" class="btn btn-preview" style="padding:10px 50px; display:none;" onclick="nxLvl()">NEXT →</button>
             </div>
         </div>
     </div>
 
     <div id="victory">
-        <h1>YOU ARE A SUPERHERO! 🏆</h1>
+        <h1 style="font-size:40px;">YOU ARE A SUPERHERO! 🏆</h1>
         <button class="btn" onclick="location.reload()">REPLAY</button>
     </div>
 
@@ -94,15 +125,15 @@
 
         function gen() {
             const data = collect();
-            if(!data.ws.length) return alert("Введите слова!");
+            if(!data.ws.length) return alert("Please enter some words first!");
             const link = window.location.href.split('?')[0] + '?d=' + btoa(encodeURIComponent(JSON.stringify(data)));
             document.getElementById('out').value = `<iframe width="100%" height="600" src="${link}" frameborder="0" allow="autoplay"></iframe>`;
-            alert("Готово! Копируй код из черного поля.");
+            alert("Success! Code generated.");
         }
 
         function preview() {
             const data = collect();
-            if(!data.ws.length) return alert("Введите слова!");
+            if(!data.ws.length) return alert("Enter words to preview!");
             start(data);
         }
 
@@ -154,7 +185,7 @@
                 });
             } else if(st.lvl === 4) {
                 const w = st.words[st.wIdx];
-                c.innerHTML = `<div style="background:white; padding:30px; border-radius:20px; border:4px solid var(--p); text-align:center; width:250px;">${w.im ? `<img src="${w.im}" style="width:80px;margin-bottom:10px;">` : '🖼️'}<h3>${w.ru}</h3><input type="text" id="wIn" style="width:100%; font-size:24px; text-align:center; border:none; border-bottom:2px solid #ddd; outline:none; text-transform:uppercase;"></div>`;
+                c.innerHTML = `<div style="background:white; padding:30px; border-radius:20px; border:4px solid var(--p); text-align:center; width:250px;">${w.im ? `<img src="${w.im}" style="width:80px;margin-bottom:10px;">` : '🖼️'}<h3>${w.ru}</h3><input type="text" id="wIn" placeholder="Type here..." style="width:100%; font-size:24px; text-align:center; border:none; border-bottom:2px solid #ddd; outline:none; text-transform:uppercase;"></div>`;
                 const i = document.getElementById('wIn'); setTimeout(()=>i.focus(), 100);
                 i.oninput = () => { if(i.value.toLowerCase() === w.en.toLowerCase()){ st.wIdx++; if(st.wIdx < st.words.length) render(); else document.getElementById('victory').style.display='flex'; } };
             }
@@ -173,7 +204,6 @@
         }
         function nxLvl() { st.lvl++; st.wIdx = 0; render(); }
 
-        // ПРОВЕРКА ПРИ ЗАГРУЗКЕ: ИГРА ИЛИ КОНСТРУКТОР?
         window.onload = () => {
             const p = new URLSearchParams(window.location.search);
             if(p.has('d')) {
