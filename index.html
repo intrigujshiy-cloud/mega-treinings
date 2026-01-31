@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>EngSmart 3.0 - Ultimate Constructor</title>
+    <style>
+        :root { --primary: #4a90e2; --accent: #2ecc71; }
+        body, html { margin:0; padding:0; height:100vh; font-family: 'Comic Sans MS', sans-serif; background: #f0f4f8; }
+        
+        /* Конструктор */
+        #constructor { padding: 30px; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .row-inputs { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; }
+        .col-input { display: flex; flex-direction: column; gap: 8px; }
+        label { font-weight: bold; color: #555; font-size: 14px; }
+        textarea { height: 250px; padding: 12px; border: 2px solid #ddd; border-radius: 12px; resize: none; font-family: monospace; font-size: 13px; line-height: 1.5; }
+        textarea:focus { border-color: var(--primary); outline: none; }
+        
+        .controls { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .btn { background: var(--accent); color: white; border: none; padding: 15px 30px; border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 16px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46,204,113,0.4); }
+        #iframeOutput { width: 100%; height: 80px; margin-top: 15px; background: #2c3e50; color: #ecf0f1; border-radius: 8px; padding: 10px; font-size: 10px; border: none; }
+
+        /* Экран игры */
+        #game-view { display: none; height: 100vh; background-size: cover; background-position: center; position: relative; }
+        .overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(5px); display: flex; flex-direction: column; }
+        .content { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        
+        /* Карточки и игровые элементы (те же, что в прошлый раз, но адаптированные) */
+        .card { width: 150px; height: 200px; perspective: 1000px; cursor: pointer; }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: 0.6s; transform-style: preserve-3d; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-face { position: absolute; inset: 0; backface-visibility: hidden; background: white; border: 4px solid var(--primary); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
+        .card-back { transform: rotateY(180deg); background: #f0f7ff; color: var(--primary); font-size: 20px; font-weight: bold; }
+        .card img { max-width: 80%; max-height: 90px; object-fit: contain; }
+        
+        .match-item { padding: 12px; background: white; border: 3px solid var(--primary); border-radius: 10px; cursor: pointer; width: 45%; font-weight: bold; text-align: center; margin: 5px 0; }
+        .match-item.selected { background: var(--primary); color: white; }
+        .match-item.hidden { opacity: 0; pointer-events: none; }
+        
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: #ddd; }
+        .dot.active { background: var(--primary); transform: scale(1.3); }
+    </style>
+</head>
+<body>
+
+    <div id="constructor">
+        <h1 style="text-align:center; color: var(--primary);">EngSmart 3.0 Constructor</h1>
+        
+        <div class="controls">
+            <label>Ссылка на фон игры:</label>
+            <input type="text" id="bgInput" value="https://images.unsplash.com/photo-1518709268805-4e9042af9f23" style="width:100%; padding:10px; border-radius:8px; border:2px solid #ddd; margin-bottom:15px;">
+        </div>
+
+        <div class="row-inputs">
+            <div class="col-input">
+                <label>English Words</label>
+                <textarea id="enCol" placeholder="Apple&#10;Dog&#10;Cat"></textarea>
+            </div>
+            <div class="col-input">
+                <label>Перевод (RU)</label>
+                <textarea id="ruCol" placeholder="Яблоко&#10;Собака&#10;Кот"></textarea>
+            </div>
+            <div class="col-input">
+                <label>Image URLs</label>
+                <textarea id="imgCol" placeholder="http://.../apple.png&#10;http://.../dog.png&#10;http://.../cat.png"></textarea>
+            </div>
+        </div>
+
+        <div class="controls" style="text-align:center;">
+            <button class="btn" onclick="generateIframe()">СГЕНЕРИРОВАТЬ IFRAME ДЛЯ GENIALLY 🚀</button>
+            <textarea id="iframeOutput" readonly placeholder="Здесь появится ваш код..."></textarea>
+            <p style="font-size: 12px; color: #888; margin-top: 10px;">(Вы также можете нажать "Предпросмотр", чтобы проверить игру)</p>
+            <button class="btn" style="background:#3498db;" onclick="previewGame()">ПРЕДПРОСМОТР 👁️</button>
+        </div>
+    </div>
+
+    <div id="game-view">
+        <div class="overlay">
+            <div style="height:60px; display:flex; justify-content:center; align-items:center; gap:15px; background:white; border-bottom:1px solid #eee;">
+                <div class="dot active" id="d1"></div>
+                <div class="dot" id="d2"></div>
+                <div class="dot" id="d3"></div>
+            </div>
+            <div id="gameContent" class="content"></div>
+            <div style="height:80px; display:flex; justify-content:center; align-items:center;">
+                <button id="nextBtn" class="btn" style="padding:10px 40px;" onclick="nextLevel()">ДАЛЬШЕ →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Функция сборки данных из колонок
+        function getWordsData() {
+            const ens = document.getElementById('enCol').value.split('\n');
+            const rus = document.getElementById('ruCol').value.split('\n');
+            const imgs = document.getElementById('imgCol').value.split('\n');
+            const bg = document.getElementById('bgInput').value;
+            
+            let combined = [];
+            for(let i=0; i < ens.length; i++) {
+                if(ens[i].trim()) {
+                    combined.push({
+                        en: ens[i].trim(),
+                        ru: (rus[i] || "").trim(),
+                        im: (imgs[i] || "").trim()
+                    });
+                }
+            }
+            return { words: combined, bg: bg };
+        }
+
+        function generateIframe() {
+            const data = getWordsData();
+            const encodedData = btoa(encodeURIComponent(JSON.stringify(data)));
+            const currentUrl = window.location.href.split('?')[0];
+            const finalLink = `${currentUrl}?data=${encodedData}`;
+            
+            const iframeCode = `<iframe width="100%" height="600" frameborder="0" src="${finalLink}"></iframe>`;
+            document.getElementById('iframeOutput').value = iframeCode;
+            alert("Код скопирован! Вставьте его в Genially.");
+        }
+
+        // --- ЛОГИКА ИГРЫ ---
+        let gameState = { level: 1, words: [], bg: "", writeIdx: 0, matches: {en:null, ru:null} };
+
+        function speak(t) {
+            const m = new SpeechSynthesisUtterance(t);
+            m.lang = 'en-US';
+            speechSynthesis.speak(m);
+        }
+
+        function previewGame() {
+            const data = getWordsData();
+            initGame(data);
+        }
+
+        function initGame(data) {
+            gameState.words = data.words;
+            gameState.bg = data.bg;
+            gameState.level = 1;
+            gameState.writeIdx = 0;
+            
+            document.getElementById('constructor').style.display = 'none';
+            document.getElementById('game-view').style.display = 'block';
+            document.getElementById('game-view').style.backgroundImage = `url(${gameState.bg})`;
+            renderLevel();
+        }
+
+        function renderLevel() {
+            const cont = document.getElementById('gameContent');
+            cont.innerHTML = '';
+            document.querySelectorAll('.dot').forEach((d,i) => d.className = (i+1 === gameState.level ? 'dot active' : 'dot'));
+
+            if(gameState.level === 1) {
+                gameState.words.forEach(w => {
+                    const c = document.createElement('div');
+                    c.className = 'card';
+                    c.innerHTML = `<div class="card-inner">
+                        <div class="card-face"><img src="${w.im}" onerror="this.style.display='none'"><div>${w.en}</div></div>
+                        <div class="card-face card-back">${w.ru}</div>
+                    </div>`;
+                    c.onclick = () => { c.classList.toggle('flipped'); if(c.classList.contains('flipped')) speak(w.en); };
+                    cont.appendChild(c);
+                });
+            } else if(gameState.level === 2) {
+                document.getElementById('nextBtn').style.display = 'none';
+                const ens = [...gameState.words].sort(() => Math.random()-0.5);
+                const rus = [...gameState.words].sort(() => Math.random()-0.5);
+                const dE = document.createElement('div'); dE.style.width='45%';
+                const dR = document.createElement('div'); dR.style.width='45%';
+                ens.forEach(w => {
+                    const b = document.createElement('div'); b.className='match-item'; b.innerText=w.en;
+                    b.onclick=()=>{speak(w.en); handleM(w.en,'en',b)}; dE.appendChild(b);
+                });
+                rus.forEach(w => {
+                    const b = document.createElement('div'); b.className='match-item'; b.innerText=w.ru;
+                    b.onclick=()=>handleM(w.en,'ru',b); dR.appendChild(b);
+                });
+                cont.append(dE, dR);
+            } else if(gameState.level === 3) {
+                document.getElementById('nextBtn').style.display = 'none';
+                const w = gameState.words[gameState.writeIdx];
+                cont.innerHTML = `<div style="background:white; padding:30px; border-radius:20px; border:4px solid var(--primary); text-align:center; width:280px;">
+                    <img src="${w.im}" style="width:100px; margin-bottom:10px;">
+                    <h3>${w.ru}</h3>
+                    <input type="text" id="wInp" style="width:100%; font-size:24px; text-align:center; border:none; border-bottom:2px solid #ddd; outline:none; text-transform:uppercase;">
+                </div>`;
+                const inp = document.getElementById('wInp');
+                inp.focus();
+                inp.oninput = () => {
+                    if(inp.value.toLowerCase() === w.en.toLowerCase()) {
+                        gameState.writeIdx++;
+                        if(gameState.writeIdx < gameState.words.length) renderLevel();
+                        else alert("YOU ARE A SUPERHERO!");
+                    }
+                };
+            }
+        }
+
+        function handleM(v,t,b) {
+            if(gameState.matches[t]) gameState.matches[t].b.classList.remove('selected');
+            gameState.matches[t] = {v, b}; b.classList.add('selected');
+            if(gameState.matches.en && gameState.matches.ru) {
+                if(gameState.matches.en.v === gameState.matches.ru.v) {
+                    gameState.matches.en.b.classList.add('hidden');
+                    gameState.matches.ru.b.classList.add('hidden');
+                    if(document.querySelectorAll('.match-item:not(.hidden)').length === 0) document.getElementById('nextBtn').style.display='block';
+                }
+                setTimeout(() => { 
+                    if(gameState.matches.en) gameState.matches.en.b.classList.remove('selected');
+                    if(gameState.matches.ru) gameState.matches.ru.b.classList.remove('selected');
+                    gameState.matches = {en:null, ru:null}; 
+                }, 400);
+            }
+        }
+
+        function nextLevel() { gameState.level++; renderLevel(); }
+
+        // ПРОВЕРКА ПАРАМЕТРОВ URL (для Genially)
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            if(params.has('data')) {
+                const data = JSON.parse(decodeURIComponent(atob(params.get('data'))));
+                initGame(data);
+            }
+        };
+    </script>
+</body>
+</html>
